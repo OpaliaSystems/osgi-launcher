@@ -10,6 +10,7 @@ import java.util.*;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import org.apache.felix.main.AutoProcessor;
+import org.apache.logging.log4j.LogManager;
 import org.eclipse.aether.artifact.Artifact;
 import org.eclipse.aether.artifact.DefaultArtifact;
 import org.osgi.framework.Bundle;
@@ -45,6 +46,8 @@ public final class Launcher {
     private final List<Bundle> bundles;
 
     public Launcher(Properties props) {
+
+        initLogging(props);
 
         logger = LoggerFactory.getLogger(Launcher.class);
         framework = getFramework(props);
@@ -127,6 +130,9 @@ public final class Launcher {
         } finally {
 
             logger.debug("The shutdown process is complete");
+
+            if ("false".equals(System.getProperty("log4j.shutdownHookEnabled", "true")))
+                LogManager.shutdown();
         }
     }
 
@@ -214,6 +220,12 @@ public final class Launcher {
             config.put((String) entry.getKey(), (String) entry.getValue());
 
         return config;
+    }
+
+    private void initLogging(Properties props) {
+
+        if (getAutoShutdownFlag(props))
+            System.setProperty("log4j.shutdownHookEnabled", "false");
     }
 
     private boolean getAutoShutdownFlag(Properties props) {

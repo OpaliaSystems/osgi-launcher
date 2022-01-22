@@ -17,6 +17,8 @@ import org.osgi.framework.BundleException;
 import org.osgi.framework.Constants;
 import org.osgi.framework.launch.Framework;
 import org.osgi.framework.launch.FrameworkFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import systems.opalia.launcher.exception.UncheckedBundleException;
 
 
@@ -35,6 +37,7 @@ public final class Launcher {
     public static final String PROPERTY_REMOTE_REPOSITORIES = "launcher.remote-repositories";
     public static final String PROPERTY_LOCAL_REPOSITORY = "launcher.local-repository";
 
+    private final Logger logger;
     private final Framework framework;
     private final ServiceHandler serviceHandler;
     private final ArtifactResolver artifactResolver;
@@ -43,7 +46,10 @@ public final class Launcher {
 
     public Launcher(Properties props) {
 
+        logger = LoggerFactory.getLogger(Launcher.class);
         framework = getFramework(props);
+
+        logger.debug("Boot OSGi framework");
 
         bootFramework(props);
 
@@ -54,18 +60,26 @@ public final class Launcher {
 
         if (getAutoShutdownFlag(props))
             Runtime.getRuntime().addShutdownHook(new Thread(this::shutdown));
+
+        logger.info("The OSGi framework has been booted");
     }
 
     public void setup() {
 
         try {
 
+            logger.debug("Start bundle installation");
+
             for (final var artifact : bundleArtifacts)
                 bundles.add(framework.getBundleContext()
                         .installBundle("file://" + artifact.getFile().getAbsolutePath()));
 
+            logger.debug("Trigger start for each bundle");
+
             for (final var bundle : bundles)
                 bundle.start();
+
+            logger.info("The system has been setup");
 
         } catch (BundleException e) {
 
@@ -76,6 +90,8 @@ public final class Launcher {
     public void shutdown() {
 
         try {
+
+            logger.debug("Perform system shutdown");
 
             Collections.reverse(bundles);
 
@@ -90,15 +106,27 @@ public final class Launcher {
             try {
 
                 framework.waitForStop(0);
+                logger.info("The system has been shutdown");
 
             } catch (InterruptedException e) {
 
+                logger.warn("The shutdown process was interrupted");
                 Thread.currentThread().interrupt();
             }
 
         } catch (BundleException e) {
 
+            logger.error("A framework or bundle specific error occurred during shutdown");
             throw new UncheckedBundleException(e);
+
+        } catch (Exception e) {
+
+            logger.error("An unexpected error occurred during shutdown");
+            throw e;
+
+        } finally {
+
+            logger.debug("The shutdown process is complete");
         }
     }
 

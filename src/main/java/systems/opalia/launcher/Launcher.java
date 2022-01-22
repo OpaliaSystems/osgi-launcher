@@ -16,6 +16,8 @@ import org.osgi.framework.BundleException;
 import org.osgi.framework.Constants;
 import org.osgi.framework.launch.Framework;
 import org.osgi.framework.launch.FrameworkFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import systems.opalia.launcher.exception.UncheckedBundleException;
 
 
@@ -34,6 +36,7 @@ public final class Launcher {
     public static final String PROPERTY_REMOTE_REPOSITORIES = "launcher.remote-repositories";
     public static final String PROPERTY_LOCAL_REPOSITORY = "launcher.local-repository";
 
+    private final Logger logger;
     private final Framework framework;
     private final ServiceHandler serviceHandler;
     private final ArtifactResolver artifactResolver;
@@ -42,6 +45,7 @@ public final class Launcher {
 
     public Launcher(Properties props) {
 
+        logger = LoggerFactory.getLogger(Launcher.class);
         framework = getFramework(props);
 
         bootFramework(props);
@@ -53,9 +57,13 @@ public final class Launcher {
 
         if (getAutoShutdownFlag(props))
             Runtime.getRuntime().addShutdownHook(new Thread(this::shutdown));
+
+        logger.info("The application is ready for setup");
     }
 
     public void setup() {
+
+        logger.debug("Resolve bundle artifacts");
 
         final var artifacts =
                 bundleArtifactNames.stream()
@@ -65,12 +73,18 @@ public final class Launcher {
 
         try {
 
+            logger.debug("Start bundle installation");
+
             for (final var artifact : artifacts)
                 bundles.add(framework.getBundleContext()
                         .installBundle("file://" + artifact.getFile().getAbsolutePath()));
 
+            logger.debug("Trigger start for each bundle");
+
             for (final var bundle : bundles)
                 bundle.start();
+
+            logger.info("The application has been setup");
 
         } catch (BundleException e) {
 
@@ -81,6 +95,8 @@ public final class Launcher {
     public void shutdown() {
 
         try {
+
+            logger.debug("Perform application shutdown");
 
             Collections.reverse(bundles);
 
@@ -95,15 +111,27 @@ public final class Launcher {
             try {
 
                 framework.waitForStop(0);
+                logger.info("The OSGi framework has been shutdown gracefully");
 
             } catch (InterruptedException e) {
 
+                logger.warn("The shutdown process was interrupted");
                 Thread.currentThread().interrupt();
             }
 
         } catch (BundleException e) {
 
+            logger.error("A framework or bundle specific error occurred during shutdown");
             throw new UncheckedBundleException(e);
+
+        } catch (Exception e) {
+
+            logger.error("An unexpected error occurred during shutdown");
+            throw e;
+
+        } finally {
+
+            logger.debug("The application has been shutdown");
         }
     }
 
@@ -163,6 +191,8 @@ public final class Launcher {
 
         try {
 
+            logger.debug("Boot OSGi framework");
+
             framework.init();
 
             if (getAutoDeploymentFlag(props)) {
@@ -172,6 +202,8 @@ public final class Launcher {
             }
 
             framework.start();
+
+            logger.info("The OSGi framework has been booted");
 
         } catch (BundleException e) {
 

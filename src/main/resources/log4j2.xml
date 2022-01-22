@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration>
+    <Appenders>
+        <Console name="Console" target="SYSTEM_OUT">
+            <PatternLayout>
+                <Pattern>
+                    [%highlight{%p{lowerCase=true}}{FATAL=red, ERROR=red, WARN=yellow, INFO=blue, DEBUG=normal, TRACE=normal}] [%d{ISO8601}{UTC}] [%t] [%c] %m%n%throwable{full}
+                </Pattern>
+            </PatternLayout>
+        </Console>
+    </Appenders>
+    <Loggers>
+        <Root level="info">
+            <AppenderRef ref="Console"/>
+        </Root>
+    </Loggers>
+</Configuration>

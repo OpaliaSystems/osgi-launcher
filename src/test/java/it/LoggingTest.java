@@ -18,6 +18,7 @@ class LoggingTest {
     public void setup()
             throws Exception {
 
+        System.setProperty(Launcher.PROPERTY_FORCED_ROOT_LOG_LEVEL, "all");
         System.setProperty(Launcher.PROPERTY_PROVIDE_LOGGING_SERVICE, "true");
 
         launcher = new Launcher();

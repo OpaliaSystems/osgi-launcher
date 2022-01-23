@@ -10,7 +10,9 @@ import java.util.*;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import org.apache.felix.main.AutoProcessor;
+import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.core.LoggerContext;
 import org.eclipse.aether.artifact.DefaultArtifact;
 import org.osgi.framework.Bundle;
 import org.osgi.framework.BundleException;
@@ -28,6 +30,7 @@ public final class Launcher {
     // about Apache Felix: https://felix.apache.org/documentation/subprojects/apache-felix-framework.html
     // about Log4j 2: https://logging.apache.org/log4j/2.x/
 
+    public static final String PROPERTY_FORCED_ROOT_LOG_LEVEL = "launcher.forced-root-log-level";
     public static final String PROPERTY_AUTO_SHUTDOWN = "launcher.auto-shutdown";
     public static final String PROPERTY_AUTO_DEPLOYMENT = "launcher.auto-deployment";
     public static final String PROPERTY_AUTO_DEPLOYMENT_DIRECTORY = "launcher.auto-deployment-directory";
@@ -243,6 +246,32 @@ public final class Launcher {
 
         if (getAutoShutdownFlag())
             System.setProperty("log4j.shutdownHookEnabled", "false");
+
+        getRootLogLevel().ifPresent(this::setRootLogLevel);
+    }
+
+    private void setRootLogLevel(Level logLevel) {
+
+        final var context = (LoggerContext) LogManager.getContext(false);
+        final var config = context.getConfiguration();
+
+        config.getLoggerConfig(LogManager.ROOT_LOGGER_NAME).setLevel(logLevel);
+        context.updateLoggers();
+    }
+
+    private Optional<Level> getRootLogLevel() {
+
+        final var value = System.getProperty(PROPERTY_FORCED_ROOT_LOG_LEVEL);
+
+        if (value == null || value.isEmpty())
+            return Optional.empty(); // default value
+
+        final var logLevel = Level.getLevel(value.toUpperCase());
+
+        if (logLevel == null)
+            throw new IllegalArgumentException("Incorrect log-level " + value);
+
+        return Optional.of(logLevel);
     }
 
     private boolean getAutoShutdownFlag() {

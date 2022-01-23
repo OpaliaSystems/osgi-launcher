@@ -35,6 +35,7 @@ public final class Launcher {
     public static final String PROPERTY_LOCAL_REPOSITORY = "launcher.local-repository";
 
     private final Framework framework;
+    private final ServiceHandler serviceHandler;
     private final ArtifactResolver artifactResolver;
     private final List<String> bundleArtifactNames;
     private final List<Bundle> bundles;
@@ -45,6 +46,7 @@ public final class Launcher {
 
         bootFramework(props);
 
+        serviceHandler = new ServiceHandler(framework.getBundleContext());
         artifactResolver = new ArtifactResolver(getRemoteRepositories(props), getLocalRepository(props));
         bundleArtifactNames = getBundleArtifacts(props);
         bundles = new ArrayList<>();
@@ -85,6 +87,9 @@ public final class Launcher {
             for (final var bundle : bundles)
                 bundle.stop();
 
+            serviceHandler.unregisterServices();
+            serviceHandler.ungetServices();
+
             framework.stop();
 
             try {
@@ -100,6 +105,11 @@ public final class Launcher {
 
             throw new UncheckedBundleException(e);
         }
+    }
+
+    public ServiceHandler.ServiceManager getServiceManager() {
+
+        return serviceHandler.getServiceManager();
     }
 
     public ArtifactResolver getArtifactResolver() {

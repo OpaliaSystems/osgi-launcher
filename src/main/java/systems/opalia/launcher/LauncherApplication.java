@@ -11,16 +11,12 @@ public final class LauncherApplication {
 
     public static void main(String[] args) {
 
-        final var props = new Properties();
-
-        props.put(Launcher.PROPERTY_AUTO_SHUTDOWN, "true");
-
-        props.putAll(System.getProperties());
+        System.setProperty(Launcher.PROPERTY_AUTO_SHUTDOWN, "true");
 
         for (final var arg : args)
-            props.putAll(loadPropertiesFromFile(arg));
+            System.getProperties().putAll(loadPropertiesFromFile(arg));
 
-        final var launcher = new Launcher(props);
+        final var launcher = new Launcher();
 
         launcher.setup();
     }

@@ -20,11 +20,13 @@ import org.osgi.framework.launch.FrameworkFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import systems.opalia.launcher.exception.UncheckedBundleException;
+import systems.opalia.launcher.logging.LoggerFactoryImpl;
 
 
 public final class Launcher {
 
     // about Apache Felix: https://felix.apache.org/documentation/subprojects/apache-felix-framework.html
+    // about Log4j 2: https://logging.apache.org/log4j/2.x/
 
     public static final String PROPERTY_AUTO_SHUTDOWN = "launcher.auto-shutdown";
     public static final String PROPERTY_AUTO_DEPLOYMENT = "launcher.auto-deployment";
@@ -36,6 +38,7 @@ public final class Launcher {
     public static final String PROPERTY_BUNDLE_ARTIFACTS = "launcher.bundle-artifacts";
     public static final String PROPERTY_REMOTE_REPOSITORIES = "launcher.remote-repositories";
     public static final String PROPERTY_LOCAL_REPOSITORY = "launcher.local-repository";
+    public static final String PROPERTY_PROVIDE_LOGGING_SERVICE = "launcher.provide-service.logging";
 
     private final Logger logger;
     private final Framework framework;
@@ -43,6 +46,7 @@ public final class Launcher {
     private final ArtifactResolver artifactResolver;
     private final List<String> bundleArtifactNames;
     private final List<Bundle> bundles;
+    private final boolean provideLoggingService;
 
     public Launcher(Properties props) {
 
@@ -57,6 +61,7 @@ public final class Launcher {
         artifactResolver = new ArtifactResolver(getRemoteRepositories(props), getLocalRepository(props));
         bundleArtifactNames = getBundleArtifacts(props);
         bundles = new ArrayList<>();
+        provideLoggingService = getLoggingServiceFlag(props);
 
         if (getAutoShutdownFlag(props))
             Runtime.getRuntime().addShutdownHook(new Thread(this::shutdown));
@@ -65,6 +70,13 @@ public final class Launcher {
     }
 
     public void setup() {
+
+        if (provideLoggingService) {
+
+            logger.debug("Start logging service");
+
+            getServiceManager().registerService(org.osgi.service.log.LoggerFactory.class, new LoggerFactoryImpl());
+        }
 
         logger.debug("Resolve bundle artifacts");
 
@@ -305,9 +317,14 @@ public final class Launcher {
 
         final var value = props.getProperty(PROPERTY_EXTRA_EXPORT_PACKAGES);
 
-        if (value == null || value.isEmpty())
-            return Collections.emptyList(); // default value
+        if (value == null || value.isEmpty()) {
 
+            // default value
+            if (provideLoggingService)
+                return Collections.singletonList("org.osgi.service.log.*");
+            else
+                return Collections.emptyList();
+        }
         return Arrays.stream(value.split(","))
                 .filter(x -> !x.isBlank())
                 .map(String::trim)
@@ -371,6 +388,16 @@ public final class Launcher {
             return System.getProperty("user.home") + "/.m2/repository/"; // default value
 
         return value;
+    }
+
+    private boolean getLoggingServiceFlag(Properties props) {
+
+        final var value = props.getProperty(PROPERTY_PROVIDE_LOGGING_SERVICE);
+
+        if (value == null || value.isEmpty())
+            return false; // default value
+
+        return Boolean.parseBoolean(value);
     }
 
     private void createPidFile(Path file)

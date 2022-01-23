@@ -44,26 +44,22 @@ public final class Launcher {
     private final Framework framework;
     private final ServiceHandler serviceHandler;
     private final ArtifactResolver artifactResolver;
-    private final List<String> bundleArtifactNames;
     private final List<Bundle> bundles;
-    private final boolean provideLoggingService;
 
-    public Launcher(Properties props) {
+    public Launcher() {
 
-        initLogging(props);
+        initLogging();
 
         logger = LoggerFactory.getLogger(Launcher.class);
-        framework = getFramework(props);
+        framework = getFramework();
 
-        bootFramework(props);
+        bootFramework();
 
         serviceHandler = new ServiceHandler(framework.getBundleContext());
-        artifactResolver = new ArtifactResolver(getRemoteRepositories(props), getLocalRepository(props));
-        bundleArtifactNames = getBundleArtifacts(props);
+        artifactResolver = new ArtifactResolver(getRemoteRepositories(), getLocalRepository());
         bundles = new ArrayList<>();
-        provideLoggingService = getLoggingServiceFlag(props);
 
-        if (getAutoShutdownFlag(props))
+        if (getAutoShutdownFlag())
             Runtime.getRuntime().addShutdownHook(new Thread(this::shutdown));
 
         logger.info("The application is ready for setup");
@@ -71,7 +67,7 @@ public final class Launcher {
 
     public void setup() {
 
-        if (provideLoggingService) {
+        if (getLoggingServiceFlag()) {
 
             logger.debug("Start logging service");
 
@@ -81,7 +77,7 @@ public final class Launcher {
         logger.debug("Resolve bundle artifacts");
 
         final var artifacts =
-                bundleArtifactNames.stream()
+                getBundleArtifacts().stream()
                         .map(DefaultArtifact::new)
                         .map(artifactResolver::resolve)
                         .collect(Collectors.toList());
@@ -148,7 +144,7 @@ public final class Launcher {
 
             logger.debug("The application has been shutdown");
 
-            if ("false".equals(System.getProperty("log4j.shutdownHookEnabled", "true")))
+            if (getAutoShutdownFlag())
                 LogManager.shutdown();
         }
     }
@@ -163,49 +159,49 @@ public final class Launcher {
         return artifactResolver;
     }
 
-    private Framework getFramework(Properties props) {
+    private Framework getFramework() {
 
         final var serviceLoader = ServiceLoader.load(FrameworkFactory.class);
         final var frameworkFactory = serviceLoader.iterator().next();
 
         try {
 
-            Files.createDirectories(getCacheDirectory(props));
+            Files.createDirectories(getCacheDirectory());
 
         } catch (IOException e) {
 
             throw new UncheckedIOException(e);
         }
 
-        if (!props.contains(Constants.FRAMEWORK_STORAGE))
-            props.put(Constants.FRAMEWORK_STORAGE, getCacheDirectory(props).toString());
+        if (System.getProperty(Constants.FRAMEWORK_STORAGE) == null)
+            System.setProperty(Constants.FRAMEWORK_STORAGE, getCacheDirectory().toString());
 
-        if (!props.contains(Constants.FRAMEWORK_STORAGE_CLEAN))
-            props.put(Constants.FRAMEWORK_STORAGE_CLEAN, Constants.FRAMEWORK_STORAGE_CLEAN_ONFIRSTINIT);
+        if (System.getProperty(Constants.FRAMEWORK_STORAGE_CLEAN) == null)
+            System.setProperty(Constants.FRAMEWORK_STORAGE_CLEAN, Constants.FRAMEWORK_STORAGE_CLEAN_ONFIRSTINIT);
 
-        if (!props.contains(Constants.FRAMEWORK_BOOTDELEGATION))
-            props.put(Constants.FRAMEWORK_BOOTDELEGATION, String.join(",", getBootDelegations(props)));
+        if (System.getProperty(Constants.FRAMEWORK_BOOTDELEGATION) == null)
+            System.setProperty(Constants.FRAMEWORK_BOOTDELEGATION, String.join(",", getBootDelegations()));
 
-        if (!props.contains(Constants.FRAMEWORK_SYSTEMPACKAGES_EXTRA))
-            props.put(Constants.FRAMEWORK_SYSTEMPACKAGES_EXTRA,
-                    String.join(",", transformExports(getExtraExportPackages(props))));
+        if (System.getProperty(Constants.FRAMEWORK_SYSTEMPACKAGES_EXTRA) == null)
+            System.setProperty(Constants.FRAMEWORK_SYSTEMPACKAGES_EXTRA,
+                    String.join(",", transformExports(getExtraExportPackages())));
 
-        return frameworkFactory.newFramework(toConfigMap(props));
+        return frameworkFactory.newFramework(getPropertyMap());
     }
 
-    private void bootFramework(Properties props) {
+    private void bootFramework() {
 
         try {
 
-            createPidFile(getPidFile(props));
+            createPidFile(getPidFile());
 
         } catch (IOException e) {
 
             throw new UncheckedIOException(e);
         }
 
-        if (!props.contains(AutoProcessor.AUTO_DEPLOY_DIR_PROPERTY))
-            props.put(AutoProcessor.AUTO_DEPLOY_DIR_PROPERTY, getAutoDeploymentDirectory(props).toString());
+        if (System.getProperty(AutoProcessor.AUTO_DEPLOY_DIR_PROPERTY) == null)
+            System.setProperty(AutoProcessor.AUTO_DEPLOY_DIR_PROPERTY, getAutoDeploymentDirectory().toString());
 
         try {
 
@@ -213,10 +209,10 @@ public final class Launcher {
 
             framework.init();
 
-            if (getAutoDeploymentFlag(props)) {
+            if (getAutoDeploymentFlag()) {
 
-                Files.createDirectories(getAutoDeploymentDirectory(props));
-                AutoProcessor.process(toConfigMap(props), framework.getBundleContext());
+                Files.createDirectories(getAutoDeploymentDirectory());
+                AutoProcessor.process(getPropertyMap(), framework.getBundleContext());
             }
 
             framework.start();
@@ -233,35 +229,25 @@ public final class Launcher {
         }
     }
 
-    private Map<String, String> toConfigMap(Properties props) {
+    private Map<String, String> getPropertyMap() {
 
         final var config = new HashMap<String, String>();
 
-        for (final var entry : props.entrySet())
+        for (final var entry : System.getProperties().entrySet())
             config.put((String) entry.getKey(), (String) entry.getValue());
 
         return config;
     }
 
-    private void initLogging(Properties props) {
+    private void initLogging() {
 
-        if (getAutoShutdownFlag(props))
+        if (getAutoShutdownFlag())
             System.setProperty("log4j.shutdownHookEnabled", "false");
     }
 
-    private boolean getAutoShutdownFlag(Properties props) {
+    private boolean getAutoShutdownFlag() {
 
-        final var value = props.getProperty(PROPERTY_AUTO_SHUTDOWN);
-
-        if (value == null || value.isEmpty())
-            return false; // default value
-
-        return Boolean.parseBoolean(value);
-    }
-
-    private boolean getAutoDeploymentFlag(Properties props) {
-
-        final var value = props.getProperty(PROPERTY_AUTO_DEPLOYMENT);
+        final var value = System.getProperty(PROPERTY_AUTO_SHUTDOWN);
 
         if (value == null || value.isEmpty())
             return false; // default value
@@ -269,9 +255,19 @@ public final class Launcher {
         return Boolean.parseBoolean(value);
     }
 
-    private Path getAutoDeploymentDirectory(Properties props) {
+    private boolean getAutoDeploymentFlag() {
 
-        final var value = props.getProperty(PROPERTY_AUTO_DEPLOYMENT_DIRECTORY);
+        final var value = System.getProperty(PROPERTY_AUTO_DEPLOYMENT);
+
+        if (value == null || value.isEmpty())
+            return false; // default value
+
+        return Boolean.parseBoolean(value);
+    }
+
+    private Path getAutoDeploymentDirectory() {
+
+        final var value = System.getProperty(PROPERTY_AUTO_DEPLOYMENT_DIRECTORY);
 
         if (value == null || value.isEmpty())
             return Paths.get("./tmp/auto-deploy").toAbsolutePath().normalize(); // default value
@@ -279,9 +275,9 @@ public final class Launcher {
         return Paths.get(value).toAbsolutePath().normalize();
     }
 
-    private Path getCacheDirectory(Properties props) {
+    private Path getCacheDirectory() {
 
-        final var value = props.getProperty(PROPERTY_CACHE_DIRECTORY);
+        final var value = System.getProperty(PROPERTY_CACHE_DIRECTORY);
 
         if (value == null || value.isEmpty())
             return Paths.get("./tmp/felix-cache").toAbsolutePath().normalize(); // default value
@@ -289,9 +285,9 @@ public final class Launcher {
         return Paths.get(value).toAbsolutePath().normalize();
     }
 
-    private Path getPidFile(Properties props) {
+    private Path getPidFile() {
 
-        final var value = props.getProperty(PROPERTY_PID_FILE);
+        final var value = System.getProperty(PROPERTY_PID_FILE);
 
         if (value == null || value.isEmpty())
             return Paths.get("./tmp/application.pid").toAbsolutePath().normalize(); // default value
@@ -299,9 +295,9 @@ public final class Launcher {
         return Paths.get(value).toAbsolutePath().normalize();
     }
 
-    private List<String> getBootDelegations(Properties props) {
+    private List<String> getBootDelegations() {
 
-        final var value = props.getProperty(PROPERTY_BOOT_DELEGATIONS);
+        final var value = System.getProperty(PROPERTY_BOOT_DELEGATIONS);
 
         if (value == null || value.isEmpty())
             return Arrays.asList("javax.*", "sun.*", "com.sun.*", "org.xml.*", "org.w3c.*"); // default value
@@ -313,14 +309,14 @@ public final class Launcher {
                 .collect(Collectors.toList());
     }
 
-    private List<String> getExtraExportPackages(Properties props) {
+    private List<String> getExtraExportPackages() {
 
-        final var value = props.getProperty(PROPERTY_EXTRA_EXPORT_PACKAGES);
+        final var value = System.getProperty(PROPERTY_EXTRA_EXPORT_PACKAGES);
 
         if (value == null || value.isEmpty()) {
 
             // default value
-            if (provideLoggingService)
+            if (getLoggingServiceFlag())
                 return Collections.singletonList("org.osgi.service.log.*");
             else
                 return Collections.emptyList();
@@ -332,9 +328,9 @@ public final class Launcher {
                 .collect(Collectors.toList());
     }
 
-    private List<String> getBundleArtifacts(Properties props) {
+    private List<String> getBundleArtifacts() {
 
-        final var value = props.getProperty(PROPERTY_BUNDLE_ARTIFACTS);
+        final var value = System.getProperty(PROPERTY_BUNDLE_ARTIFACTS);
 
         if (value == null || value.isEmpty())
             return Collections.emptyList(); // default value
@@ -346,10 +342,10 @@ public final class Launcher {
                 .collect(Collectors.toList());
     }
 
-    private LinkedHashMap<String, String> getRemoteRepositories(Properties props) {
+    private LinkedHashMap<String, String> getRemoteRepositories() {
 
         final var repositories = new LinkedHashMap<String, String>();
-        final var value = props.getProperty(PROPERTY_REMOTE_REPOSITORIES);
+        final var value = System.getProperty(PROPERTY_REMOTE_REPOSITORIES);
 
         if (value == null || value.isEmpty()) {
 
@@ -380,9 +376,9 @@ public final class Launcher {
         return repositories;
     }
 
-    private String getLocalRepository(Properties props) {
+    private String getLocalRepository() {
 
-        final var value = props.getProperty(PROPERTY_LOCAL_REPOSITORY);
+        final var value = System.getProperty(PROPERTY_LOCAL_REPOSITORY);
 
         if (value == null || value.isEmpty())
             return System.getProperty("user.home") + "/.m2/repository/"; // default value
@@ -390,9 +386,9 @@ public final class Launcher {
         return value;
     }
 
-    private boolean getLoggingServiceFlag(Properties props) {
+    private boolean getLoggingServiceFlag() {
 
-        final var value = props.getProperty(PROPERTY_PROVIDE_LOGGING_SERVICE);
+        final var value = System.getProperty(PROPERTY_PROVIDE_LOGGING_SERVICE);
 
         if (value == null || value.isEmpty())
             return false; // default value

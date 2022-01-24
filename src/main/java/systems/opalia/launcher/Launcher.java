@@ -2,6 +2,7 @@ package systems.opalia.launcher;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.lang.management.ManagementFactory;
 import java.net.JarURLConnection;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -55,6 +56,8 @@ public final class Launcher {
 
         logger = LoggerFactory.getLogger(Launcher.class);
         framework = getFramework();
+
+        logMetadata();
 
         bootFramework();
 
@@ -240,6 +243,41 @@ public final class Launcher {
             config.put((String) entry.getKey(), (String) entry.getValue());
 
         return config;
+    }
+
+    private void logMetadata() {
+
+        final var runtimeBean = ManagementFactory.getRuntimeMXBean();
+        final var heapBean = ManagementFactory.getMemoryMXBean().getHeapMemoryUsage();
+        final var classLoader = Thread.currentThread().getContextClassLoader();
+        final var buildProperties = new Properties();
+
+        try (final var is = classLoader.getResourceAsStream("build.properties")) {
+
+            if (is != null)
+                buildProperties.load(is);
+
+        } catch (IOException e) {
+
+            throw new UncheckedIOException(e);
+        }
+
+        final var appName = buildProperties.getProperty("project.name");
+        final var appVersion = buildProperties.getProperty("project.version");
+        final var osName = System.getProperty("os.name");
+        final var osVersion = System.getProperty("os.version");
+        final var osArch = System.getProperty("os.arch");
+        final var jvmName = runtimeBean.getVmName();
+        final var jvmSpecVersion = runtimeBean.getSpecVersion();
+        final var jvmVersion = runtimeBean.getVmVersion();
+        final var heapInit = String.format("%.2f GiB", ((double) heapBean.getInit()) / 1024 / 1024 / 1024);
+        final var heapMax = String.format("%.2f GiB", ((double) heapBean.getMax()) / 1024 / 1024 / 1024);
+
+        logger.debug("Application: {} {}", appName, appVersion);
+        logger.debug("OS: {} {} {}", osName, osVersion, osArch);
+        logger.debug("JVM: {} {} ({})", jvmName, jvmSpecVersion, jvmVersion);
+        logger.debug("Initial heap memory: {}", heapInit);
+        logger.debug("Maximum heap memory: {}", heapMax);
     }
 
     private void initLogging() {

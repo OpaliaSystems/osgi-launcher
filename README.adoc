@@ -5,6 +5,113 @@ automatically via Maven.
 
 Download new versions from the Git repository https://github.com/OpaliaSystems/osgi-launcher.
 
+=== Configuration
+
+[cols="2*", options="header"]
+|===
+|Defaults&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+|Description&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+
+2+|*launcher.forced-root-log-level*
+|INFO
+
+The default is the log-level of root logger in log4j2.xml file.
+|This property forces the application to overwrite the log-level of the configured root logger.
+
+2+|*launcher.auto-shutdown*
+|using embedded launcher: false
+
+using launcher application: true
+|If true the launcher creates a shutdown hook to gracefully end the application. It is required to perform correctly if the application gets a signal to shutdown.
+
+2+|*launcher.auto-deployment*
+|false
+|Enables or disables auto-deployment.
+
+2+|*launcher.auto-deployment-directory*
+|./tmp/auto-deploy
+|The path to the auto-deployment directory. Drop bundles into this directory at runtime for automatic deployment.
+
+2+|*launcher.cache-directory*
+|./tmp/felix-cache
+|The path to the Apache Felix cache directory.
+
+2+|*launcher.pid-file*
+|./tmp/application.pid
+|The path to the PID file, which will be created by the launcher. This file can be used to end the application.
+
+2+|*launcher.boot-delegations*
+|javax.&ast;, sun.&ast;, com.sun.&ast;, org.xml.&ast;, org.w3c.&ast;
+|A comma-delimited list of packages that should be made implicitly available to all bundles.
+
+2+|*launcher.extra-export-packages*
+|if logging service is enabled: org.osgi.service.log.&ast;
+
+if logging service is disabled: <empty>
+|A comma-delimited list of packages that should be exported via the system bundle.
+
+2+|*launcher.bundle-artifacts*
+|<empty>
+
+See "Further explanations" below
+|A comma-delimited list of bundle artifacts that will be installed at boot time.
+
+2+|*launcher.remote-repositories*
+|See "Further explanations" below
+|A comma-delimited list of Maven repositories used for resolving bundle artifacts. The remote repositories are only used if the local repository does not have an entry for a specific bundle artifact.
+
+2+|*launcher.local-repository*
+|<user.home>/.m2/repository/
+|The path to a local Maven repository.
+
+2+|*launcher.provide-service.logging*
+|false
+|If true the logging framework becomes available in the bundles via the OSGi logging interface. Instead of using the logging factory directly, a bridge implementation can be used to operate the logging facade SLF4J over the OSGi logging facade.
+
+2+|*log4j.configurationFile*
+|The default configuration file log4j2.xml is directly available from JAR resources.
+|Allows to set an alternative configuration file for Log4j 2. May also contain a comma separated list of configuration file paths.
+|===
+
+==== Further explanations
+
+===== Bundle artifacts
+see property *launcher.bundle-artifacts*
+
+====== Example
+org.osgi:org.osgi.util.tracker:1.5.2, org.osgi:org.osgi.service.component:1.4.0
+
+====== Schema
+<group ID>:<artifact ID>:<version>, ...
+
+===== Remote repositories
+see property *launcher.remote-repositories*
+
+====== Defaults
+* Maven Central: https://repo1.maven.org/maven2/
+* JCenter: https://jcenter.bintray.com/
+* Sonatype OSS Releases: https://oss.sonatype.org/content/repositories/releases/
+
+====== Schema
+<name>:<URL>, ...
+
+==== Additional configuration
+* Apache Felix: https://felix.apache.org/documentation/subprojects/apache-felix-framework/apache-felix-framework-configuration-properties.html
+* Log4j 2: https://logging.apache.org/log4j/2.x/manual/configuration.html
+
+=== Usage
+
+==== Run application
+To keep it simple the build tool can be used to boot the application. Optionally, file paths to configuration files can be specified. Alternatively, the configuration can be specified via system properties by using the java command directly.
+----
+mvn exec:java -Dexec.args="file_1.properties file_2.properties ..."
+----
+==== End application
+If the application is running in the foreground the shortcut _Ctrl+C_ causes a graceful shutdown. In case the application is running in the background, the following command can be used.
+----
+kill -s TERM $(cat ./path/to/application.pid)
+----
+
 === License
 
 Copyright (c) 2022 Eric Löffler

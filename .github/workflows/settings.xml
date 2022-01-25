@@ -1,0 +1,14 @@
+<settings>
+
+    <profiles>
+        <profile>
+            <id>analyzing</id>
+            <properties>
+                <sonar.projectKey>OpaliaSystems_osgi-launcher</sonar.projectKey>
+                <sonar.organization>opalia-systems</sonar.organization>
+                <sonar.host.url>https://sonarcloud.io</sonar.host.url>
+            </properties>
+        </profile>
+    </profiles>
+
+</settings>

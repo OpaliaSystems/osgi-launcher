@@ -1,0 +1,38 @@
+name: Java Maven CI for build and test actions
+
+on:
+  push:
+    branches:
+      - 'main'
+      - 'feature/**'
+      - 'fix/**'
+  pull_request:
+    branches:
+      - 'main'
+
+jobs:
+
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout project
+        uses: actions/checkout@v2
+      - name: Setup JDK 11
+        uses: actions/setup-java@v2
+        with:
+          java-version: 11
+          distribution: adopt
+          architecture: x64
+      - name: Cache Maven packages
+        uses: actions/cache@v2
+        with:
+          path: ~/.m2
+          key: ${{ runner.os }}-maven2-${{ hashFiles('**/pom.xml') }}
+          restore-keys: ${{ runner.os }}-maven2
+      - name: Build project
+        run: |
+          mvn --batch-mode package \
+            -DskipTests=true
+      - name: Test project
+        run: |
+          mvn --batch-mode verify

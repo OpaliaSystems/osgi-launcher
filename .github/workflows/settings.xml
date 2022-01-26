@@ -1,5 +1,13 @@
 <settings>
 
+    <servers>
+        <server>
+            <id>ossrh</id>
+            <username>${env.OSSRH_USERNAME}</username>
+            <password>${env.OSSRH_PASSWORD}</password>
+        </server>
+    </servers>
+
     <profiles>
         <profile>
             <id>analyzing</id>
@@ -7,6 +15,22 @@
                 <sonar.projectKey>OpaliaSystems_osgi-launcher</sonar.projectKey>
                 <sonar.organization>opalia-systems</sonar.organization>
                 <sonar.host.url>https://sonarcloud.io</sonar.host.url>
+            </properties>
+        </profile>
+        <profile>
+            <id>signing</id>
+            <properties>
+                <gpg.keyname>${env.GPG_KEY_NAME}</gpg.keyname>
+                <gpg.passphrase>${env.GPG_PASSPHRASE}</gpg.passphrase>
+                <gpg.executable>gpg</gpg.executable>
+            </properties>
+        </profile>
+        <profile>
+            <id>deploying</id>
+            <properties>
+                <nexus.host.url>https://s01.oss.sonatype.org/</nexus.host.url>
+                <nexus.snapshot.url>https://s01.oss.sonatype.org/content/repositories/snapshots/</nexus.snapshot.url>
+                <nexus.release.url>https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/</nexus.release.url>
             </properties>
         </profile>
     </profiles>

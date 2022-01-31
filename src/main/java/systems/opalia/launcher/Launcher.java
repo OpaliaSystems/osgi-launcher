@@ -124,17 +124,14 @@ public final class Launcher {
             serviceHandler.ungetServices();
 
             framework.stop();
+            framework.waitForStop(0);
 
-            try {
+            logger.info("The OSGi framework has been shutdown gracefully");
 
-                framework.waitForStop(0);
-                logger.info("The OSGi framework has been shutdown gracefully");
+        } catch (InterruptedException e) {
 
-            } catch (InterruptedException e) {
-
-                logger.warn("The shutdown process was interrupted");
-                Thread.currentThread().interrupt();
-            }
+            logger.warn("The shutdown process was interrupted");
+            Thread.currentThread().interrupt();
 
         } catch (BundleException e) {
 

@@ -121,17 +121,14 @@ public final class Launcher {
             serviceHandler.ungetServices();
 
             framework.stop();
+            framework.waitForStop(0);
 
-            try {
+            logger.info("The system has been shutdown");
 
-                framework.waitForStop(0);
-                logger.info("The system has been shutdown");
+        } catch (InterruptedException e) {
 
-            } catch (InterruptedException e) {
-
-                logger.warn("The shutdown process was interrupted");
-                Thread.currentThread().interrupt();
-            }
+            logger.warn("The shutdown process was interrupted");
+            Thread.currentThread().interrupt();
 
         } catch (BundleException e) {
 

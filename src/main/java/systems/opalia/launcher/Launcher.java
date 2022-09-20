@@ -73,6 +73,11 @@ public final class Launcher {
 
     public void setup() {
 
+        setup(false);
+    }
+
+    public void setup(boolean dryRun) {
+
         if (getLoggingServiceFlag()) {
 
             logger.debug("Start logging service");
@@ -96,12 +101,15 @@ public final class Launcher {
                 bundles.add(framework.getBundleContext()
                         .installBundle("file://" + artifact.getFile().getAbsolutePath()));
 
-            logger.debug("Trigger start for each bundle");
+            if (!dryRun) {
 
-            for (final var bundle : bundles)
-                bundle.start();
+                logger.debug("Trigger start for each bundle");
 
-            logger.info("The application has been setup");
+                for (final var bundle : bundles)
+                    bundle.start();
+
+                logger.info("The application has been setup");
+            }
 
         } catch (BundleException e) {
 

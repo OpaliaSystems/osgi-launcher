@@ -1,6 +1,123 @@
 = OSGi Launcher
 
-== License
+This project is a very lightweight OSGi launcher, based on the powerful Apache Felix framework.
+This solution streamlines the process of bundle resolution and deployment by using the Maven dependency management system.
+An additional configuration layer over Apache Felix simplifies sharing of dependencies and bundles across the services.
+
+Download new versions from the Git repository: https://github.com/OpaliaSystems/osgi-launcher
+
+== Usage
+
+The launcher can be easily embedded into an existing application or run as a standalone application.
+
+=== Run application
+
+To keep it simple the build tool can be used to boot the application.
+
+----
+mvn exec:java -Dexec.args="..."
+----
+
+=== End application
+
+If the application is running in the foreground the shortcut _Ctrl+C_ causes a graceful shutdown.
+In case the application is running in the background, the following command can be used.
+
+----
+kill -s TERM $(cat ./path/to/application.pid)
+----
+
+=== Parameters of the standalone application
+
+The configuration is taken from the system properties.
+Alternatively, the configuration can be specified in files.
+
+.Add a config file
+----
+--config-file=application.properties --config-file=another.properties
+----
+
+In case the artifacts should only be resolved and installed to test their compatibility, a dry-run can be performed, which skips starting the bundles.
+
+.Perform a dry-run
+----
+--dry-run
+----
+
+=== Configuration
+
+[cols="1,1",options="header"]
+|===
+|Defaults
+|Description
+
+2+|*launcher.forced-root-log-level*
+|`INFO`
+
+The default is the log-level of root logger in log4j2.xml file.
+|This property forces the application to overwrite the log-level of the configured root logger.
+
+2+|*launcher.auto-shutdown*
+|using embedded launcher: +
+`false` +
+using launcher application: +
+`true`
+|If true the launcher creates a shutdown hook to gracefully end the application. It is required to perform correctly if the application gets a signal to shutdown.
+
+2+|*launcher.auto-deployment*
+|`false`
+|Enables or disables auto-deployment.
+
+2+|*launcher.auto-deployment-directory*
+|`./tmp/auto-deploy`
+|The path to the auto-deployment directory. Drop bundles into this directory at runtime for automatic deployment.
+
+2+|*launcher.cache-directory*
+|`./tmp/felix-cache`
+|The path to the Apache Felix cache directory.
+
+2+|*launcher.pid-file*
+|`./tmp/application.pid`
+|The path to the PID file, which will be created by the launcher. This file can be used to end the application.
+
+2+|*launcher.extra-export-packages*
+|if logging service is enabled: +
+`org.osgi.service.log.&ast;` +
+if logging service is disabled: +
+<empty>
+|A comma-separated list of packages that should be exported to be available for all bundles.
+
+2+|*launcher.bundle-artifacts*
+|<empty>
+|A comma-separated list of bundle artifacts that will be installed at boot time. +
+*Schema* +
+`<group ID>:<artifact ID>:<version>`
+
+2+|*launcher.remote-repositories*
+|`Maven Central: https://repo1.maven.org/maven2/`
+|A comma-separated list of Maven repositories used for resolving bundle artifacts. The remote repositories are only used if the local repository does not have an entry for a specific bundle artifact. +
+*Schema* +
+`<ID>:<URL>`
+
+2+|*launcher.local-repository*
+|<user.home> `/.m2/repository/`
+|The path to a local Maven repository.
+
+2+|*launcher.provide-service.logging*
+|`false`
+|If true the logging framework becomes available for all bundles via the OSGi logging interface. Instead of using the logging factory directly, a bridge implementation can be used to operate the logging facade SLF4J over the OSGi logging facade.
+
+2+|*log4j.configurationFile*
+|The default configuration file log4j2.xml is directly available from JAR resources.
+|Allows to set an alternative configuration file for Log4j 2. May also contain a comma-separated list of configuration file paths.
+|===
+
+==== Additional configuration
+
+* Apache Felix: https://felix.apache.org/documentation/subprojects/apache-felix-framework/apache-felix-framework-configuration-properties.html
+* Log4j 2: https://logging.apache.org/log4j/2.x/manual/configuration.html
+
+=== License
 
 Copyright (c) 2022 Eric Löffler (brettaufheber)
 

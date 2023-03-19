@@ -423,8 +423,6 @@ public final class Launcher {
 
             // default value
             repositories.put("Maven Central", "https://repo1.maven.org/maven2/");
-            repositories.put("JCenter", "https://jcenter.bintray.com/");
-            repositories.put("Sonatype OSS Releases", "https://oss.sonatype.org/content/repositories/releases/");
 
         } else {
 

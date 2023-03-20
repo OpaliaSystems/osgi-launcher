@@ -37,7 +37,6 @@ public final class Launcher {
     public static final String PROPERTY_AUTO_DEPLOYMENT_DIRECTORY = "launcher.auto-deployment-directory";
     public static final String PROPERTY_CACHE_DIRECTORY = "launcher.cache-directory";
     public static final String PROPERTY_PID_FILE = "launcher.pid-file";
-    public static final String PROPERTY_BOOT_DELEGATIONS = "launcher.boot-delegations";
     public static final String PROPERTY_EXTRA_EXPORT_PACKAGES = "launcher.extra-export-packages";
     public static final String PROPERTY_BUNDLE_ARTIFACTS = "launcher.bundle-artifacts";
     public static final String PROPERTY_REMOTE_REPOSITORIES = "launcher.remote-repositories";
@@ -189,9 +188,6 @@ public final class Launcher {
 
         if (System.getProperty(Constants.FRAMEWORK_STORAGE_CLEAN) == null)
             System.setProperty(Constants.FRAMEWORK_STORAGE_CLEAN, Constants.FRAMEWORK_STORAGE_CLEAN_ONFIRSTINIT);
-
-        if (System.getProperty(Constants.FRAMEWORK_BOOTDELEGATION) == null)
-            System.setProperty(Constants.FRAMEWORK_BOOTDELEGATION, String.join(",", getBootDelegations()));
 
         if (System.getProperty(Constants.FRAMEWORK_SYSTEMPACKAGES_EXTRA) == null)
             System.setProperty(Constants.FRAMEWORK_SYSTEMPACKAGES_EXTRA,
@@ -365,20 +361,6 @@ public final class Launcher {
             return Paths.get("./tmp/application.pid").toAbsolutePath().normalize(); // default value
 
         return Paths.get(value).toAbsolutePath().normalize();
-    }
-
-    private List<String> getBootDelegations() {
-
-        final var value = System.getProperty(PROPERTY_BOOT_DELEGATIONS);
-
-        if (value == null || value.isEmpty())
-            return Arrays.asList("javax.*", "sun.*", "com.sun.*", "org.xml.*", "org.w3c.*"); // default value
-
-        return Arrays.stream(value.split(","))
-                .filter(x -> !x.isBlank())
-                .map(String::trim)
-                .distinct()
-                .collect(Collectors.toList());
     }
 
     private List<String> getExtraExportPackages() {
